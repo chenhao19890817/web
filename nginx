@@ -1239,13 +1239,17 @@ session会话保持：
 		       }
 		(5) 做方法分离；
 ngx_http_dav_module学习
-WebDAV（Web-based Distributed Authoring and Versioning）是基于HTTP 1.1的一个通信协议。它为HTTP 1.1添加了一些扩展（就是在 GET、POST、HEAD 等几个 HTTP 标准方法以外添加了
-一些新的方法），使得应用程序可以直接将文件写到 Web Server 上，并且在写文件时候可以对文件加锁，写完后对文件解锁，还可以支持对文件所做的版本控制。
+WebDAV(Web-based Distributed Authoring and Versioning)是基于HTTP 1.1的一个通信协议。它为HTTP 1.1添加了一些扩展,就是在 GET、POST、HEAD 等几个 HTTP 标准方法以外添加了
+一些新的方法,使得应用程序可以直接将文件写到 Web Server 上，并且在写文件时候可以对文件加锁，写完后对文件解锁，还可以支持对文件所做的版本控制。
+ngx_http_dav_module+auth-basic的使用案例
+]# htpasswd  -c /etc/nginx/conf.d/.nginxpasswd root  nginx支持htpasswd的加密格式,这里会提示输入密码
 ]# vi /etc/nginx/conf.d/default.conf
    server {
       listen 80;
       server_name 192.168.139.133;
-      location / {
+      location / { 
+            auth_basic "please input your passwd";
+            auth_basic_user_file  /etc/nginx/conf.d/.nginxpasswd;
             root                  /data/www;
             client_body_temp_path /data/client_temp;
             dav_methods PUT DELETE MKCOL COPY MOVE;
@@ -1261,8 +1265,8 @@ WebDAV（Web-based Distributed Authoring and Versioning）是基于HTTP 1.1的�
 ]# chown -R nginx:nginx /data
 ]# nginx -t 
 ]# nginx 
-]# curl -T /etc/passwd http://192.168.139.133
-只要在/data/www目录下面可以查看到passwd文件，说明使用curl向nginx提交文件成功
+]# curl -u root:root -T /etc/passwd http://192.168.139.133  只要在/data/www目录下面可以查看到passwd文件，说明使用curl向nginx提交文件成功
+]# curl -u root:root http://192.168.139.133/passwd 验证是否可以下载成功
 nginx的所有配置案例集中如下---------------------------------------------------------------------------------------
 error_page使用案例：
 vim /web/www/404.html
