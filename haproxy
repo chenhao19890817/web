@@ -1,4 +1,5 @@
 ﻿35-1	
+
 load balancer
      layer 4:lvs(没有端口的限制），haproxy也可以
      layer 7:ats,nginx,haproxy,apache(配合tomcat使用）
