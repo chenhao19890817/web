@@ -198,7 +198,6 @@ lvs-tun：ip tunneling，ip隧道；
    (3) 请求报文经由Director调度，但响应报文将直接发给CIP；
    (4) 不支持端口映射；
    (5) RS的OS必须支持IP隧道功能
-；
 27-6				
 回顾：Linux Cluster, LVS 
 Linux Cluster：
@@ -270,24 +269,9 @@ ipvs的集群服务：
       ipvs: 内核	
       ipvsadm: CLI工具；
 ipvsadm命令的用法：
-ipvsadm -A|E -t|u|f service-address [-s scheduler]  [-p [timeout]] [-M netmask] [-b sched-flags]   针对一个集群
-ipvsadm -D -t|u|f  service-address
-ipvsadm -C  清除规则		
-ipvsadm -R
-ipvsadm -S [-n]	
-ipvsadm -a|e -t|u|f service-address -r server-address   [-g|i|m] [-w weight] [-x upper] [-y lower]  针对后端主机
--g，gateway对应dr模型，默认是dr模型
--i，ipip对应tun模型
--m，masquerade对应nat模型		
-ipvsadm -d -t|u|f service-address -r server-address   删除
-ipvsadm -L|l [options]  查看
-ipvsadm -Z [-t|u|f service-address]
-ipvsadm --set tcp tcpfin udp
-ipvsadm -h
-
 管理集群服务：	
-  ipvsadm  -A|E  -t|u|f  service-address  [-s scheduler]		
-  ipvsadm  -D    -t|u|f service-address
+ipvsadm  -A|E  -t|u|f  service-address  [-s scheduler]  [-p [timeout]] [-M netmask] [-b sched-flags]		
+ipvsadm  -D    -t|u|f service-address
        -A：添加
        -E：修改			
        -D：删除			
@@ -297,7 +281,7 @@ service-address：
        -f, fwm, MARK	
        -s scheduler：默认为wlc；
 管理集群服务上的RS：
-ipvsadm -a|e  -t|u|f service-address -r server-address [-g|i|m] [-w weight]	
+ipvsadm -a|e  -t|u|f service-address -r server-address [-g|i|m] [-w weight] [-x upper] [-y lower]  针对后端主机	
 ipvsadm -d -t|u|f service-address -r server-address
       -a：添加一个RS
       -e：修改一个RS		
@@ -313,7 +297,12 @@ ipvsadm -L|l [options]  查看
      --stats：统计数据；
      --rate：速率	
      --exact：精确值
-ipvsadm  -C  清空规则
+ipvsadm -C  清空规则
+ipvsadm -R
+ipvsadm -S [-n]	
+ipvsadm -Z [-t|u|f service-address]   计数器清零
+ipvsadm --set tcp tcpfin udp
+ipvsadm -h
 
 保存和重载：			
      保存：
@@ -322,9 +311,6 @@ ipvsadm  -C  清空规则
      重载：
   ipvsadm  -R < /PATH/FROM/SOME_RULE_FILE
   ipvsadm-restore < /PATH/FROM/SOME_RULE_FILE
-						
-计数器清零：
-ipvsadm  -Z  [-t|u|f service-address]
 
 负载均衡集群中设计时的要点：		
     (1) session保持；
@@ -353,7 +339,7 @@ cookie最典型的应用是：
 nat模型的lvs负载均衡的web集群部署discuz应用；
 
 28-2
-lvs-nat模型：（Director在switch前面，RS在switch后面）
+lvs-nat模型：
     nat模型架构：
          client：
               网卡格式为nat，地址192.168.139.170/24
@@ -572,14 +558,10 @@ real server：健康状态检测；
      非健康时：offline
 
 		
-考虑如何对real server做健康状态检测：
-			
+考虑如何对real server做健康状态检测：		
    (1) ip层：探测主机的存活状态,即ping操作			
    (2) 传输层：探测端口的可用性，即nmap扫描			
    (3) 应用层：请求关键的某资源，如curl操作然后分析请求到的响应报文
-
-
-			
 状态变化：
 				
 ok --> failure --> failure --> failure
@@ -958,13 +940,12 @@ keepalived组件：
 HA Cluster的配置前提：
      1）各节点时间要同步，ntp server或者chrony					
      2）确保iptables及selinux不会成为障碍；
-     3）（可选）各节点之间可通过主机名互相通信；节点的名称设定与hosts文件中解析的主机名都要保持一致；				
-      # uname -n 获得的主机，与解析的主机名要相同；
-     4）（可选）各节点之间基于密钥认证的方式通过ssh互信通信；
+     3）各节点之间可通过主机名互相通信；节点的名称设定与hosts文件中解析的主机名都要保持一致；				
+         uname -n 获得的主机，与解析的主机名要相同；
+     4）各节点之间基于密钥认证的方式通过ssh互信通信；
 keepalived的程序环境：
-   主配置文件：/etc/keepalived/keepalived.conf	
    Unit file: /usr/lib/systemd/system/keepalived.service
-/etc/keepalived/keepalived的配置文件格式如下,可以通过man keepalived.conf来显示如下信息	
+   主配置文件：/etc/keepalived/keepalived.conf的配置文件格式如下,可以通过man keepalived.conf来显示如下信息	
 global_defs {
  全局配置			 
             notification_email {
@@ -1026,7 +1007,7 @@ virtual_server <IPADDR> <PORT>{   定义集群服务，这里面包含的内容�
     sorry_server <IPADDR> <PORT> 所有RS均故障时，提供say sorry的服务器
     real_server  <IPADDR> <PORT>  { 可以定义多个realserver
         weight # 
-        notify_up  <STRING>|<QUOTED-STRING>   当前节点上线时通知脚步
+        notify_up   <STRING>|<QUOTED-STRING>   当前节点上线时通知脚本
         notify_down <STRING>|<QUOTED-STRING>
         HTTP_GET {  支持的健康状态检测方式有HTTP_GET|SSL_GET|TCP_CHECK|SMTP_CHECK|MISC_CHECK
             url {
@@ -1045,7 +1026,7 @@ virtual_server <IPADDR> <PORT>{   定义集群服务，这里面包含的内容�
         }
     }
 }
-keepalived高可用带有脚步通知的nat模型配置(视频中讲的是dr模型，由于虚拟机数量限制只能配置nat模型）
+keepalived高可用带有脚本通知的nat模型配置(视频中讲的是dr模型，由于虚拟机数量限制只能配置nat模型）
    架构配置
     DR1：两块网卡都是nat模式，只要不在同一个网段就可以，VIP为192.10.0.11/24,DIP为192.168.139.187/24 
     DR2：两块网卡都是nat模式，只要不在同一个网段就可以，VIP为192.10.0.11/24,DIP为192.168.139.188/24 
@@ -1053,7 +1034,7 @@ keepalived高可用带有脚步通知的nat模型配置(视频中讲的是dr模�
     RS2：网卡都是nat模式,RIP为192.168.139.190/24 
     DR1具体配置步骤：
           1)yum install keepalived -y
-          2)vim /etc/keepalived/notify.sh  先定义一个通知脚步
+          2)vim /etc/keepalived/notify.sh  先定义一个通知脚本
 #!/bin/bash					
 #		
 contact='root@localhost'			
